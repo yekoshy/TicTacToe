@@ -1,223 +1,209 @@
-// Logging Utility for the UI
-        const logBox = document.getElementById("logBox");
-        function logThought(message) {
-            logBox.innerHTML += `<p>${message}</p>`;
-            logBox.scrollTop = logBox.scrollHeight;
-        }
+// UI Elements
+const logBox = document.getElementById("logBox");
+const boardElement = document.getElementById('board');
+const statusElement = document.getElementById('status');
 
-        // ==========================================
-        // NEURAL NETWORK SETUP (Replaces Minimax)
-        // ==========================================
-        const aiBrain = new brain.NeuralNetwork({ hiddenLayers: [18, 18], activation: 'leaky-relu' });
+// Configuration
+let isTraining = true;
+const aiBrain = new brain.NeuralNetwork({ hiddenLayers: [10, 10], activation: 'leaky-relu' });
 
-        function generateTrainingData() {
-            let flashcards =[];
-            // Basic rule: Play the middle if board is empty
-            flashcards.push({ input:[0,0,0, 0,0,0, 0,0,0], output:[0,0,0, 0,1,0, 0,0,0] });
+// ==========================================
+// 1. DATA GENERATION (Expanded)
+// ==========================================
+function generateTrainingData() {
+    let flashcards = [];
+    
+    // Pattern: [TopL, TopM, TopR, MidL, MidM, MidR, BotL, BotM, BotR]
+    // Value: 1 = Human(X), -1 = AI(O), 0 = Empty
 
-            const lines = [[0,1,2], [3,4,5], [6,7,8], // Rows[0,3,6], [1,4,7], [2,5,8], // Cols[0,4,8], [2,4,6]           // Diags
-            ];
+    // STRATEGY: Center & Corners
+    flashcards.push({ input: [0,0,0, 0,0,0, 0,0,0], output: [0,0,0, 0,1,0, 0,0,0] }); // Open center
+    flashcards.push({ input: [0,0,0, 0,1,0, 0,0,0], output: [1,0,0, 0,0,0, 0,0,0] }); // Take corner if center taken
 
-            // Train the AI to recognize winning and blocking patterns
-            lines.forEach(line => {
-                let [a, b, c] = line;
-                
-                // Learn to BLOCK Human (Human X is 1)
-                [[a,b,c], [a,c,b], [b,c,a]].forEach(([pos1, pos2, target]) => {
-                    let blockIn =[0,0,0, 0,0,0, 0,0,0];
-                    blockIn[pos1] = 1; blockIn[pos2] = 1;
-                    let out =[0,0,0, 0,0,0, 0,0,0];
-                    out[target] = 1;
-                    flashcards.push({ input: blockIn, output: out });
-                });
+    const lines = [
+        [0,1,2], [3,4,5], [6,7,8], // Rows
+        [0,3,6], [1,4,7], [2,5,8], // Cols
+        [0,4,8], [2,4,6]           // Diags
+    ];
 
-                // Learn to WIN (AI O is -1)
-                [[a,b,c], [a,c,b], [b,c,a]].forEach(([pos1, pos2, target]) => {
-                    let winIn =[0,0,0, 0,0,0, 0,0,0];
-                    winIn[pos1] = -1; winIn[pos2] = -1;
-                    let out =[0,0,0, 0,0,0, 0,0,0];
-                    out[target] = 1;
-                    flashcards.push({ input: winIn, output: out });
-                });
-            });
-            return flashcards;
-        }
+    lines.forEach(line => {
+        let [a, b, c] = line;
+        // Learn to BLOCK (If Human has 2 in a row)
+        [[a,b,c], [a,c,b], [b,c,a]].forEach(([p1, p2, target]) => {
+            let block = [0,0,0, 0,0,0, 0,0,0];
+            block[p1] = 1; block[p2] = 1;
+            let out = [0,0,0, 0,0,0, 0,0,0];
+            out[target] = 1;
+            flashcards.push({ input: block, output: out });
+        });
+        // Learn to WIN (If AI has 2 in a row)
+        [[a,b,c], [a,c,b], [b,c,a]].forEach(([p1, p2, target]) => {
+            let win = [0,0,0, 0,0,0, 0,0,0];
+            win[p1] = -1; win[p2] = -1;
+            let out = [0,0,0, 0,0,0, 0,0,0];
+            out[target] = 1;
+            flashcards.push({ input: win, output: out });
+        });
+    });
 
-        // ==========================================
-        // GAME LOGIC
-        // ==========================================
-        class TicTacToe {
-            constructor() {
-                this.reset();
-            }
+    return flashcards;
+}
 
-            reset() {
-                this.board = Array.from({ length: 3 }, () => Array(3).fill(" "));
-                this.currentPlayer = 1; // 1 = Human (X), 2 = Computer (O)
-                this.isGameOver = false;
-            }
+// ==========================================
+// 2. VISUALIZATION & LOGGING
+// ==========================================
+function logThought(message) {
+    const p = document.createElement("p");
+    p.innerHTML = message;
+    logBox.appendChild(p);
+    logBox.scrollTop = logBox.scrollHeight;
+}
 
-            makeMove(row, col) {
-                if (this.isGameOver || this.board[row][col] !== " ") return false;
-                
-                this.board[row][col] = this.currentPlayer === 1 ? "X" : "O";
-                if (this.checkWinner(this.board) || this.isBoardFull(this.board)) {
-                    this.isGameOver = true;
-                } else {
-                    this.currentPlayer = 3 - this.currentPlayer;
-                }
-                return true;
-            }
+function drawSmallBoard(arr, isOutput = false) {
+    const sym = (v) => v === 1 ? '<span style="color:var(--x-color)">X</span>' : (v === -1 ? '<span style="color:var(--o-color)">O</span>' : '·');
+    const outSym = (v) => v > 0.5 ? '🎯' : '·';
+    
+    let boardHTML = `<div style="display:grid; grid-template-columns:repeat(3,12px); gap:2px; font-family:monospace; background:#eee; padding:4px; border-radius:3px;">`;
+    arr.forEach(val => {
+        boardHTML += `<span>${isOutput ? outSym(val) : sym(val)}</span>`;
+    });
+    boardHTML += `</div>`;
+    return boardHTML;
+}
 
-            checkWinner(board) {
-                for (let i = 0; i < 3; i++) {
-                    if (board[i][0] !== " " && board[i][0] === board[i][1] && board[i][1] === board[i][2]) return board[i][0];
-                    if (board[0][i] !== " " && board[0][i] === board[1][i] && board[1][i] === board[2][i]) return board[0][i];
-                }
-                if (board[0][0] !== " " && board[0][0] === board[1][1] && board[1][1] === board[2][2]) return board[0][0];
-                if (board[0][2] !== " " && board[0][2] === board[1][1] && board[1][1] === board[2][0]) return board[0][2];
-                return null;
-            }
+// ==========================================
+// 3. ASYNC TRAINING (The "No-Freeze" Logic)
+// ==========================================
+async function startNeuralTraining() {
+    const data = generateTrainingData();
+    logThought(`<b>🚀 Initializing Brain Scan...</b>`);
+    
+    // Show cards one by one
+    for (let i = 0; i < data.length; i++) {
+        const card = data[i];
+        const cardUI = `
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:5px;">
+                <small>Card #${i+1}</small> ${drawSmallBoard(card.input)} 
+                <span>➡️</span> ${drawSmallBoard(card.output, true)}
+            </div>
+        `;
+        logThought(cardUI);
+        
+        // Pause every 5 cards to let the UI refresh
+        if (i % 5 === 0) await new Promise(r => setTimeout(r, 10));
+    }
 
-            isBoardFull(board) {
-                return board.every(row => row.every(cell => cell !== " "));
-            }
+    logThought(`<b>🧠 Deep Learning in progress...</b> (500 iterations)`);
+    
+    // Running training in a timeout ensures the "Loading" status renders first
+    setTimeout(() => {
+        aiBrain.train(data, { iterations: 500, errorThresh: 0.01 });
+        logThought(`✅ <b>Training Complete!</b> Board is active.`);
+        statusElement.innerText = "Your turn (X)";
+        isTraining = false;
+    }, 100);
+}
 
-            // Convert 2D Board ("X", "O", " ") to 1D Array (1, -1, 0) for Brain.js
-            getNetworkInput() {
-                let inputData =[];
-                for(let r=0; r<3; r++){
-                    for(let c=0; c<3; c++){
-                        if(this.board[r][c] === "X") inputData.push(1);
-                        else if(this.board[r][c] === "O") inputData.push(-1);
-                        else inputData.push(0);
-                    }
-                }
-                return inputData;
-            }
-
-            // AI asks Brain.js for the best move instead of Minimax
-            getNeuralNetworkMove() {
-                const clues = this.getNetworkInput();
-                logThought(`<span class="highlight-detective">Detectives Analyzing Clues:</span> [${clues.join(", ")}]`);
-
-                const predictions = aiBrain.run(clues);
-                
-                let bestScore = -Infinity;
-                let bestMoveIndex = -1;
-
-                // Check all 9 squares to find the highest confidence empty square
-                for (let i = 0; i < 9; i++) {
-                    let r = Math.floor(i / 3);
-                    let c = i % 3;
-                    if (this.board[r][c] === " ") {
-                        if (predictions[i] > bestScore) {
-                            bestScore = predictions[i];
-                            bestMoveIndex = i;
-                        }
-                    }
-                }
-
-                let confidence = Math.round(bestScore * 100);
-                if (confidence < 1) confidence = Math.floor(Math.random() * 20 + 10); // Format for presentation
-
-                if (confidence > 60) {
-                    logThought(`<span class="highlight-guess">Output Layer:</span> "Pattern recognized! I am <b>${confidence}% confident</b> this is the best move."`);
-                } else {
-                    logThought(`<span class="highlight-guess">Output Layer:</span> "I haven't studied this exact board... Making an educated guess with <b>${confidence}% confidence</b>."`);
-                }
-
-                return { r: Math.floor(bestMoveIndex / 3), c: bestMoveIndex % 3 };
+// ==========================================
+// 4. GAME ENGINE
+// ==========================================
+class TicTacToe {
+    constructor() { this.reset(); }
+    reset() {
+        this.board = Array(9).fill(0); // 1D array is easier for Neural Nets
+        this.currentPlayer = 1; // 1 = X, 2 = O
+        this.isGameOver = false;
+    }
+    makeMove(index) {
+        if (this.isGameOver || this.board[index] !== 0) return false;
+        this.board[index] = this.currentPlayer === 1 ? 1 : -1;
+        this.currentPlayer = 3 - this.currentPlayer;
+        return true;
+    }
+    checkWinner() {
+        const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+        for (let line of lines) {
+            const [a, b, c] = line;
+            if (this.board[a] !== 0 && this.board[a] === this.board[b] && this.board[a] === this.board[c]) {
+                return this.board[a] === 1 ? "X" : "O";
             }
         }
+        return this.board.includes(0) ? null : "Draw";
+    }
+}
 
-        // ==========================================
-        // UI BINDINGS
-        // ==========================================
-        const game = new TicTacToe();
-        const boardElement = document.getElementById('board');
-        const statusElement = document.getElementById('status');
+const game = new TicTacToe();
 
-        function createBoard() {
-            boardElement.innerHTML = '';
-            for (let r = 0; r < 3; r++) {
-                for (let c = 0; c < 3; c++) {
-                    const cell = document.createElement('div');
-                    cell.classList.add('cell');
-                    cell.dataset.row = r;
-                    cell.dataset.col = c;
-                    cell.addEventListener('click', () => handleMove(r, c));
-                    boardElement.appendChild(cell);
-                }
-            }
+function handleMove(index) {
+    if (isTraining || game.currentPlayer !== 1 || game.isGameOver) return;
+
+    if (game.makeMove(index)) {
+        updateUI();
+        const result = game.checkWinner();
+        if (!result) {
+            statusElement.innerText = "AI is thinking...";
+            setTimeout(aiMove, 600);
+        } else {
+            endGame(result);
         }
+    }
+}
 
-        function handleMove(r, c) {
-            if (game.currentPlayer !== 1 || game.isGameOver) return;
-
-            logThought(`👤 <span class="highlight-input">Human plays X</span> at Row ${r+1}, Col ${c+1}.`);
-
-            if (game.makeMove(r, c)) {
-                updateUI();
-                if (!game.isGameOver) {
-                    statusElement.innerText = "Computer is calculating...";
-                    setTimeout(() => {
-                        const move = game.getNeuralNetworkMove();
-                        if (move) {
-                            game.makeMove(move.r, move.c);
-                            updateUI();
-                        }
-                    }, 800); // Small delay to let audience read the log
-                }
-            }
+function aiMove() {
+    const input = [...game.board];
+    logThought(`🔍 <b>AI Analyzing Board:</b> [${input.join(', ')}]`);
+    
+    const prediction = aiBrain.run(input);
+    
+    // Find the best available move
+    let bestScore = -1;
+    let bestMove = -1;
+    
+    for (let i = 0; i < 9; i++) {
+        if (game.board[i] === 0 && prediction[i] > bestScore) {
+            bestScore = prediction[i];
+            bestMove = i;
         }
+    }
 
-        function updateUI() {
-            const cells = document.querySelectorAll('.cell');
-            cells.forEach(cell => {
-                const r = cell.dataset.row;
-                const c = cell.dataset.col;
-                const val = game.board[r][c];
-                cell.innerText = val;
-                cell.className = 'cell'; 
-                if (val !== " ") {
-                    cell.classList.add('taken', val.toLowerCase());
-                }
-            });
+    if (bestMove !== -1) {
+        const conf = Math.round(bestScore * 100);
+        logThought(`🤖 <b>AI Choice:</b> Cell ${bestMove} (${conf}% confidence)`);
+        game.makeMove(bestMove);
+        updateUI();
+        
+        const result = game.checkWinner();
+        if (result) endGame(result);
+        else statusElement.innerText = "Your turn (X)";
+    }
+}
 
-            const winnerToken = game.checkWinner(game.board);
-            if (winnerToken) {
-                statusElement.innerText = winnerToken === "X" ? "You Win! (AI missed a pattern)" : "Computer Wins!";
-                logThought(winnerToken === "X" ? "🎉 Human wins!" : "🤖 AI wins!");
-            } else if (game.isBoardFull(game.board)) {
-                statusElement.innerText = "It's a Draw!";
-                logThought("⚖️ It's a draw!");
-            } else {
-                statusElement.innerText = game.currentPlayer === 1 ? "Your turn (X)" : "Computer's turn (O)";
-            }
-        }
+function updateUI() {
+    boardElement.innerHTML = '';
+    game.board.forEach((val, i) => {
+        const cell = document.createElement('div');
+        cell.className = `cell ${val === 1 ? 'x taken' : (val === -1 ? 'o taken' : '')}`;
+        cell.innerText = val === 1 ? 'X' : (val === -1 ? 'O' : '');
+        cell.onclick = () => handleMove(i);
+        boardElement.appendChild(cell);
+    });
+}
 
-        function resetGame() {
-            game.reset();
-            statusElement.innerText = "Your turn (X)";
-            logBox.innerHTML = '';
-            logThought("🔄 Game Reset. Waiting for Human Input...");
-            createBoard();
-        }
+function endGame(result) {
+    game.isGameOver = true;
+    statusElement.innerText = result === "Draw" ? "It's a Draw!" : `${result} Wins!`;
+    logThought(result === "Draw" ? "⚖️ Match ended in a draw." : `🏆 Winner: ${result}`);
+}
 
-        // ==========================================
-        // INITIALIZE APP AND TRAIN NETWORK
-        // ==========================================
-        createBoard();
-        logThought("⚙️ Setting up Brain.js...");
-        logThought("🧑‍🏫 Hiring 36 'Detectives' for the Hidden Layers...");
+function resetGame() {
+    if (isTraining) return;
+    game.reset();
+    logBox.innerHTML = '';
+    logThought("🔄 Game Reset.");
+    updateUI();
+    statusElement.innerText = "Your turn (X)";
+}
 
-        setTimeout(() => {
-            const trainingData = generateTrainingData();
-            logThought(`📚 Studying ${trainingData.length} flashcards to learn blocks and wins...`);
-            
-            aiBrain.train(trainingData, { iterations: 2000 });
-            
-            logThought("✅ Training Complete! The Neural Network is ready.");
-            statusElement.innerText = "Your turn (X)";
-        }, 100);
+// Init
+updateUI();
+startNeuralTraining();
