@@ -32,7 +32,7 @@ flowchart LR
         O3["Is Square 3 best? (99%!)"]
     end
 
-    %% Drawing the connections to show how the network "talks"
+    %% Drawing the connections
     I1 & I2 & I3 ---> H1_1 & H1_2 & H1_3
     H1_1 & H1_2 & H1_3 ---> H2_1 & H2_2 & H2_3
     H2_1 & H2_2 & H2_3 ---> O1 & O2 & O3
