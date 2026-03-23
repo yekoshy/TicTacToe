@@ -1,3 +1,5 @@
+<pre>
+<code>```mermaid
 flowchart LR
     %% Defining the styles for a clean, non-tech look
     classDef input fill:#d4edda,stroke:#28a745,stroke-width:2px,color:black;
@@ -41,3 +43,5 @@ flowchart LR
     class I1,I2,I3 input;
     class H1_1,H1_2,H1_3,H2_1,H2_2,H2_3 hidden;
     class O1,O2,O3 output;
+```</code>
+</pre>
