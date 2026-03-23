@@ -123,3 +123,35 @@ button:hover { opacity: 0.9; }
 .highlight-detective { color: #d35400; font-weight: bold; }
 .highlight-guess { color: var(--o-color); font-weight: bold; }
 .highlight-input { color: var(--x-color); font-weight: bold; }
+
+/* --- NAVIGATION BUTTON STYLE --- */
+.back-link {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    text-decoration: none;
+    background: white;
+    color: var(--primary-color);
+    padding: 10px 15px;
+    border-radius: 50px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 2px solid var(--primary-color);
+    z-index: 100; /* Ensures it stays above other elements */
+}
+
+.back-link:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    background: var(--primary-color);
+    color: white;
+}
+
+/* Ensure the wrapper handles the absolute positioning of the button */
+body {
+    position: relative;
+}
