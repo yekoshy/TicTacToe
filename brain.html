@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tic-Tac-Toe AI Brain</title>
+    <!-- Import Brain.js - The simplest Neural Network library for the web -->
+    <script src="https://unpkg.com/brain.js"></script>
+</head>
+<body style="font-family: Arial; padding: 20px;">
+    <h1>Tic-Tac-Toe Neural Network Example</h1>
+    <p>Open your browser's <b>Developer Tools Console (F12)</b> to see the AI think!</p>
+
+    <script>
+        // ---------------------------------------------------------
+        // HOW WE REPRESENT THE BOARD:
+        //  1 = The AI (playing X)
+        // -1 = The Human (playing O)
+        //  0 = Empty Space
+        // ---------------------------------------------------------
+
+        // STEP 1: THE EXAMPLES (Training Data / Flashcards)
+        // We give the AI an 'input' (the board) and the correct 'output' (the best move).
+        // For the output, we put a "1" in the square the AI should play.
+        const flashcards =[
+            
+            // Flashcard 1: AI (1) has two in a row on top. 
+            // Correct Move: Play Top-Right (Index 2) to WIN!
+            {
+                input:[ 1,  1,  0,  
+                         -1, -1,  0,   
+                          0,  0,  0 ],
+
+                output:[ 0,  0,  1,  
+                          0,  0,  0,   
+                          0,  0,  0 ]
+            },
+
+            // Flashcard 2: Human (-1) has two in a row. 
+            // Correct Move: Play Top-Right (Index 2) to BLOCK!
+            {
+                input:[-1, -1,  0,  
+                          1,  0,  0,   
+                          0,  0,  0 ],
+
+                output:[ 0,  0,  1,  
+                          0,  0,  0,   
+                          0,  0,  0 ]
+            },
+
+            // Flashcard 3: Empty board. 
+            // Correct move: Play Center (Index 4) to START.
+            {
+                input:[ 0,  0,  0,  
+                          0,  0,  0,   
+                          0,  0,  0 ],
+
+                output:[ 0,  0,  0,  
+                          0,  1,  0,   
+                          0,  0,  0 ]
+            }
+        ];
+
+        // STEP 2: BUILD "THE DETECTIVES" (The Neural Network)
+        console.log("Hiring the detectives...");
+        const aiBrain = new brain.NeuralNetwork({
+            hiddenLayers: [18, 18], // Two rows of 18 detectives
+            activation: 'leaky-relu' // This just helps the AI understand negative numbers (-1)
+        });
+
+        // STEP 3: PRACTICE (Training)
+        console.log("Training the AI on the flashcards...");
+        aiBrain.train(flashcards, {
+            iterations: 2000 // Tell the AI to study the flashcards 2,000 times
+        });
+
+        // STEP 4: THE TEST (Playing the Game!)
+        // We give it a brand new board it has never exactly seen before.
+        // The human (-1) is about to win on the top row.
+        const mysteryBoard =[
+            -1, -1,  0,  
+             0,  1,  0,   
+             1,  0,  0 
+        ];
+
+        console.log("Giving the AI a mystery board...");
+        const aiGuess = aiBrain.run(mysteryBoard);
+        
+        // The AI outputs a list of probabilities for all 9 squares.
+        // We want to find the square it is MOST confident about.
+        const bestMoveIndex = aiGuess.indexOf(Math.max(...aiGuess));
+
+        console.log("----------------------------------");
+        console.log("The AI chooses to play in position: " + bestMoveIndex);
+        console.log("----------------------------------");
+        // It will successfully print "2" (Top Right) to block the human!
+        
+    </script>
+</body>
+</html>
