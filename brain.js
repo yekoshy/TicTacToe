@@ -17,8 +17,93 @@ function generateTrainingData() {
     // Value: 1 = Human(X), -1 = AI(O), 0 = Empty
 
     // STRATEGY: Center & Corners
-    flashcards.push({ input: [0,0,0, 0,0,0, 0,0,0], output: [0,0,0, 0,1,0, 0,0,0] }); // Open center
-    flashcards.push({ input: [0,0,0, 0,1,0, 0,0,0], output: [1,0,0, 0,0,0, 0,0,0] }); // Take corner if center taken
+    // 1. Open Center
+    flashcards.push({ input:[0,0,0, 0,0,0, 0,0,0], output:[0,0,0, 0,1,0, 0,0,0] });
+    
+    // 2-9. Human plays any Edge or Corner -> AI takes Center
+    flashcards.push({ input:[1,0,0, 0,0,0, 0,0,0], output:[0,0,0, 0,1,0, 0,0,0] }); // TL
+    flashcards.push({ input:[0,1,0, 0,0,0, 0,0,0], output:[0,0,0, 0,1,0, 0,0,0] }); // TM
+    flashcards.push({ input:[0,0,1, 0,0,0, 0,0,0], output:[0,0,0, 0,1,0, 0,0,0] }); // TR
+    flashcards.push({ input:[0,0,0, 1,0,0, 0,0,0], output:[0,0,0, 0,1,0, 0,0,0] }); // ML
+    flashcards.push({ input:[0,0,0, 0,0,1, 0,0,0], output:[0,0,0, 0,1,0, 0,0,0] }); // MR
+    flashcards.push({ input:[0,0,0, 0,0,0, 1,0,0], output:[0,0,0, 0,1,0, 0,0,0] }); // BL
+    flashcards.push({ input:[0,0,0, 0,0,0, 0,1,0], output:[0,0,0, 0,1,0, 0,0,0] }); // BM
+    flashcards.push({ input:[0,0,0, 0,0,0, 0,0,1], output:[0,0,0, 0,1,0, 0,0,0] }); // BR
+
+    // 10-13. Human plays Center -> AI takes a Corner (4 symmetric variants)
+    flashcards.push({ input:[0,0,0, 0,1,0, 0,0,0], output:[1,0,0, 0,0,0, 0,0,0] }); // TL
+    flashcards.push({ input:[0,0,0, 0,1,0, 0,0,0], output:[0,0,1, 0,0,0, 0,0,0] }); // TR
+    flashcards.push({ input:[0,0,0, 0,1,0, 0,0,0], output:[0,0,0, 0,0,0, 1,0,0] }); // BL
+    flashcards.push({ input:[0,0,0, 0,1,0, 0,0,0], output:[0,0,0, 0,0,0, 0,0,1] }); // BR
+
+    // 14-17. Counter Diagonal Traps (Human opposite corners, AI center) -> AI takes Edge
+    flashcards.push({ input:[1,0,0, 0,-1,0, 0,0,1], output:[0,1,0, 0,0,0, 0,0,0] }); // TM
+    flashcards.push({ input:[0,0,1, 0,-1,0, 1,0,0], output:[0,1,0, 0,0,0, 0,0,0] }); // TM
+    flashcards.push({ input:[1,0,0, 0,-1,0, 0,0,1], output:[0,0,0, 1,0,0, 0,0,0] }); // ML
+    flashcards.push({ input:[0,0,1, 0,-1,0, 1,0,0], output:[0,0,0, 0,0,1, 0,0,0] }); // MR
+
+    // 18-21. Counter V-Traps (Human adjacent edges) -> AI takes Corner between them
+    flashcards.push({ input:[0,1,0, 1,0,0, 0,0,0], output:[1,0,0, 0,0,0, 0,0,0] }); // TL
+    flashcards.push({ input:[0,1,0, 0,0,1, 0,0,0], output:[0,0,1, 0,0,0, 0,0,0] }); // TR
+    flashcards.push({ input:[0,0,0, 1,0,0, 0,1,0], output:[0,0,0, 0,0,0, 1,0,0] }); // BL
+    flashcards.push({ input:[0,0,0, 0,0,1, 0,1,0], output:[0,0,0, 0,0,0, 0,0,1] }); // BR
+
+    // 22-25. Opposite Edges (Human plays top/bottom or left/right) -> AI takes corner
+    flashcards.push({ input:[0,1,0, 0,-1,0, 0,1,0], output:[1,0,0, 0,0,0, 0,0,0] }); // TL
+    flashcards.push({ input:[0,1,0, 0,-1,0, 0,1,0], output:[0,0,1, 0,0,0, 0,0,0] }); // TR
+    flashcards.push({ input:[0,0,0, 1,-1,1, 0,0,0], output:[1,0,0, 0,0,0, 0,0,0] }); // TL
+    flashcards.push({ input:[0,0,0, 1,-1,1, 0,0,0], output:[0,0,0, 0,0,0, 1,0,0] }); // BL
+
+    // 26-33. Corner + Opposite Edge (Human Corner + Non-adjacent Edge) -> AI blocks the V trap
+    flashcards.push({ input:[1,0,0, 0,-1,1, 0,0,0], output:[0,0,1, 0,0,0, 0,0,0] }); // Block TR
+    flashcards.push({ input:[0,0,1, 1,-1,0, 0,0,0], output:[1,0,0, 0,0,0, 0,0,0] }); // Block TL
+    flashcards.push({ input:[0,0,0, 0,-1,1, 1,0,0], output:[0,0,0, 0,0,0, 0,0,1] }); // Block BR
+    flashcards.push({ input:[0,0,0, 1,-1,0, 0,0,1], output:[0,0,0, 0,0,0, 1,0,0] }); // Block BL
+    flashcards.push({ input:[1,0,0, 0,-1,0, 0,1,0], output:[0,0,0, 0,0,0, 1,0,0] }); // Block BL
+    flashcards.push({ input:[0,0,1, 0,-1,0, 0,1,0], output:[0,0,0, 0,0,0, 0,0,1] }); // Block BR
+    flashcards.push({ input:[0,1,0, 0,-1,0, 1,0,0], output:[1,0,0, 0,0,0, 0,0,0] }); // Block TL
+    flashcards.push({ input:[0,1,0, 0,-1,0, 0,0,1], output:[0,0,1, 0,0,0, 0,0,0] }); // Block TR
+
+    // 34-37. AI Center Opening (AI has center, Human takes corner) -> AI takes opposite corner
+    flashcards.push({ input:[1,0,0, 0,-1,0, 0,0,0], output:[0,0,0, 0,0,0, 0,0,1] }); // BR
+    flashcards.push({ input:[0,0,1, 0,-1,0, 0,0,0], output:[0,0,0, 0,0,0, 1,0,0] }); // BL
+    flashcards.push({ input:[0,0,0, 0,-1,0, 1,0,0], output:[0,0,1, 0,0,0, 0,0,0] }); // TR
+    flashcards.push({ input:[0,0,0, 0,-1,0, 0,0,1], output:[1,0,0, 0,0,0, 0,0,0] }); // TL
+
+    // 38-41. AI Center, Human Edge -> AI takes adjacent corner to threaten
+    flashcards.push({ input:[0,1,0, 0,-1,0, 0,0,0], output:[1,0,0, 0,0,0, 0,0,0] }); // TL
+    flashcards.push({ input:[0,0,0, 1,-1,0, 0,0,0], output:[1,0,0, 0,0,0, 0,0,0] }); // TL
+    flashcards.push({ input:[0,0,0, 0,-1,1, 0,0,0], output:[0,0,1, 0,0,0, 0,0,0] }); // TR
+    flashcards.push({ input:[0,0,0, 0,-1,0, 0,1,0], output:[0,0,0, 0,0,0, 1,0,0] }); // BL
+
+    // 42-45. AI Double Corner Offensive (Setting up a trap)
+    flashcards.push({ input:[-1,0,0, 0,1,0, 0,0,0], output:[0,0,-1, 0,0,0, 0,0,0] }); // AI takes TR
+    flashcards.push({ input:[-1,0,0, 0,1,0, 0,0,0], output:[0,0,0, 0,0,0, -1,0,0] }); // AI takes BL
+    flashcards.push({ input:[0,0,-1, 0,1,0, 0,0,0], output:[-1,0,0, 0,0,0, 0,0,0] }); // AI takes TL
+    flashcards.push({ input:[0,0,-1, 0,1,0, 0,0,0], output:[0,0,0, 0,0,0, 0,0,-1] }); // AI takes BR
+
+    // 46-49. Knight Move Defenses (Human edge + adjacent corner)
+    flashcards.push({ input:[1,1,0, 0,-1,0, 0,0,0], output:[0,0,1, 0,0,0, 0,0,0] }); // TR
+    flashcards.push({ input:[0,1,1, 0,-1,0, 0,0,0], output:[1,0,0, 0,0,0, 0,0,0] }); // TL
+    flashcards.push({ input:[0,0,0, 0,-1,0, 1,1,0], output:[0,0,0, 0,0,0, 0,0,1] }); // BR
+    flashcards.push({ input:[0,0,0, 0,-1,0, 0,1,1], output:[0,0,0, 0,0,0, 1,0,0] }); // BL
+
+    // 50-53. Edge-Corner trap prevention (Human has adjacent edge & corner side)
+    flashcards.push({ input:[1,0,0, 1,-1,0, 0,0,0], output:[0,0,0, 0,0,0, 1,0,0] }); // BL
+    flashcards.push({ input:[0,0,1, 0,-1,1, 0,0,0], output:[0,0,0, 0,0,0, 0,0,1] }); // BR
+    flashcards.push({ input:[0,0,0, 1,-1,0, 1,0,0], output:[1,0,0, 0,0,0, 0,0,0] }); // TL
+    flashcards.push({ input:[0,0,0, 0,-1,1, 0,0,1], output:[0,0,1, 0,0,0, 0,0,0] }); // TR
+
+    // 54-57. Safe center continuation rules (Center is taken, defending from corner attacks)
+    flashcards.push({ input:[1,0,0, 0,1,0, 0,0,0], output:[0,0,0, 0,0,0, 0,0,1] }); // Human TL+C -> AI BR
+    flashcards.push({ input:[0,0,1, 0,1,0, 0,0,0], output:[0,0,0, 0,0,0, 1,0,0] }); // Human TR+C -> AI BL
+    flashcards.push({ input:[0,0,0, 0,1,0, 1,0,0], output:[0,0,1, 0,0,0, 0,0,0] }); // Human BL+C -> AI TR
+    flashcards.push({ input:[0,0,0, 0,1,0, 0,0,1], output:[1,0,0, 0,0,0, 0,0,0] }); // Human BR+C -> AI TL
+
+    // 58-60. Safe center continuation rules (Center is taken, defending from edge attacks)
+    flashcards.push({ input:[0,1,0, 0,1,0, 0,0,0], output:[0,0,0, 0,0,0, 0,1,0] }); // Block BM
+    flashcards.push({ input:[0,0,0, 1,1,0, 0,0,0], output:[0,0,0, 0,0,1, 0,0,0] }); // Block MR
+    flashcards.push({ input:[0,0,0, 0,1,1, 0,0,0], output:[0,0,0, 1,0,0, 0,0,0] }); // Block ML
 
     const lines = [
         [0,1,2], [3,4,5], [6,7,8], // Rows
