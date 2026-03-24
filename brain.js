@@ -7,13 +7,16 @@ const statusElement = document.getElementById('status');
 let isTraining = true;
 const aiBrain = new brain.NeuralNetwork({ hiddenLayers: [10, 10], activation: 'leaky-relu' });
 
+let allTrainingData =[];
+let lastBoardBeforeAiMoved = null;
+
 // ==========================================
 // 1. DATA GENERATION (Expanded)
 // ==========================================
 function generateTrainingData() {
     let flashcards = [];
     
-    // Pattern: [TopL, TopM, TopR, MidL, MidM, MidR, BotL, BotM, BotR]
+    // Pattern:[TopL, TopM, TopR, MidL, MidM, MidR, BotL, BotM, BotR]
     // Value: 1 = Human(X), -1 = AI(O), 0 = Empty
 
     // STRATEGY: Center & Corners
@@ -157,29 +160,31 @@ function generateTrainingData() {
     flashcards.push({ input:[0,0,0, -1,0,0, 1,0,1], output:[0,0,0, 0,0,0, 0,1,0] }); // Focus Block BM
     flashcards.push({ input:[0,0,0, -1,0,0, 0,1,1], output:[0,0,0, 0,0,0, 1,0,0] }); // Focus Block BL
 
-    
+
     const lines = [
         [0,1,2], [3,4,5], [6,7,8], // Rows
-        [0,3,6], [1,4,7], [2,5,8], // Cols
+        [0,3,6], [1,4,7],[2,5,8], // Cols
         [0,4,8], [2,4,6]           // Diags
     ];
 
     lines.forEach(line => {
         let [a, b, c] = line;
-        // Learn to BLOCK (If Human has 2 in a row)
+        
+        // Learn to BLOCK (If Human has 2 in a row) - HIGHEST PRIORITY
         [[a,b,c], [a,c,b], [b,c,a]].forEach(([p1, p2, target]) => {
-            let block = [0,0,0, 0,0,0, 0,0,0];
+            let block =[0,0,0, 0,0,0, 0,0,0];
             block[p1] = 1; block[p2] = 1;
-            let out = [0,0,0, 0,0,0, 0,0,0];
-            out[target] = 1;
+            let out =[0,0,0, 0,0,0, 0,0,0];
+            out[target] = 1.0; // <--- 1.0 Weight (Maximum Priority)
             flashcards.push({ input: block, output: out });
         });
-        // Learn to WIN (If AI has 2 in a row)
+        
+        // Learn to WIN (If AI has 2 in a row) - LOWER PRIORITY
         [[a,b,c], [a,c,b], [b,c,a]].forEach(([p1, p2, target]) => {
-            let win = [0,0,0, 0,0,0, 0,0,0];
+            let win =[0,0,0, 0,0,0, 0,0,0];
             win[p1] = -1; win[p2] = -1;
-            let out = [0,0,0, 0,0,0, 0,0,0];
-            out[target] = 1;
+            let out =[0,0,0, 0,0,0, 0,0,0];
+            out[target] = 0.8; // <--- 0.8 Weight (Win is less important than Block)
             flashcards.push({ input: win, output: out });
         });
     });
@@ -199,7 +204,7 @@ function logThought(message) {
 
 function drawSmallBoard(arr, isOutput = false) {
     const sym = (v) => v === 1 ? '<span style="color:var(--x-color)">X</span>' : (v === -1 ? '<span style="color:var(--o-color)">O</span>' : '·');
-    const outSym = (v) => v > 0.5 ? '🎯' : '·';
+    const outSym = (v) => v > 0.7 ? '🎯' : '·';
     
     let boardHTML = `<div style="display:grid; grid-template-columns:repeat(3,12px); gap:2px; font-family:monospace; background:#eee; padding:4px; border-radius:3px;">`;
     arr.forEach(val => {
@@ -212,13 +217,19 @@ function drawSmallBoard(arr, isOutput = false) {
 // ==========================================
 // 3. ASYNC TRAINING (The "No-Freeze" Logic)
 // ==========================================
+// ==========================================
+// 3. ASYNC TRAINING (The "No-Freeze" Logic)
+// ==========================================
 async function startNeuralTraining() {
-    const data = generateTrainingData();
+    allTrainingData = generateTrainingData();
     logThought(`<b>🚀 Initializing Brain Scan...</b>`);
     
-    // Show cards one by one
-    for (let i = 0; i < data.length; i++) {
-        const card = data[i];
+    // Fix: Only draw the first 15 cards so the browser doesn't lag out
+    const maxVisuals = Math.min(15, allTrainingData.length);
+    
+    for (let i = 0; i < maxVisuals; i++) {
+        // Fix: Changed 'data' to 'allTrainingData'
+        const card = allTrainingData[i]; 
         const cardUI = `
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:5px;">
                 <small>Card #${i+1}</small> ${drawSmallBoard(card.input)} 
@@ -227,15 +238,17 @@ async function startNeuralTraining() {
         `;
         logThought(cardUI);
         
-        // Pause every 5 cards to let the UI refresh
         if (i % 5 === 0) await new Promise(r => setTimeout(r, 10));
     }
 
-    logThought(`<b>🧠 Deep Learning in progress...</b> (500 iterations)`);
+    logThought(`<i>... Successfully loaded ${allTrainingData.length} training patterns ...</i>`);
+    logThought(`<b>🧠 Deep Learning in progress...</b>`);
     
     // Running training in a timeout ensures the "Loading" status renders first
     setTimeout(() => {
-        aiBrain.train(data, { iterations: 500, errorThresh: 0.01 });
+        // Fix: Changed 'data' to 'allTrainingData'
+        aiBrain.train(allTrainingData, { iterations: 1000, errorThresh: 0.08 });
+        
         logThought(`✅ <b>Training Complete!</b> Board is active.`);
         statusElement.innerText = "Your turn (X)";
         isTraining = false;
@@ -261,7 +274,7 @@ class TicTacToe {
     checkWinner() {
         const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
         for (let line of lines) {
-            const [a, b, c] = line;
+            const[a, b, c] = line;
             if (this.board[a] !== 0 && this.board[a] === this.board[b] && this.board[a] === this.board[c]) {
                 return this.board[a] === 1 ? "X" : "O";
             }
@@ -282,19 +295,49 @@ function handleMove(index) {
             statusElement.innerText = "AI is thinking...";
             setTimeout(aiMove, 600);
         } else {
+            // NEW: If human wins, the AI realizes it missed a block!
+            if (result === "X" && lastBoardBeforeAiMoved) {
+                learnFromMistake(lastBoardBeforeAiMoved, index);
+            }
             endGame(result);
         }
     }
 }
 
+// NEW FUNCTION: The AI dynamically creates new flashcards and evolves
+function learnFromMistake(boardSnapshot, winningIndex) {
+    logThought(`🚨 <b>MISTAKE DETECTED!</b> I failed to block cell ${winningIndex}. Memorizing this layout...`);
+    
+    // Create the "Correct" output (it should have blocked the winning index)
+    let correctOutput =[0,0,0, 0,0,0, 0,0,0];
+    correctOutput[winningIndex] = 1.0; 
+    
+    // Add 3 copies of this flashcard to the dataset to strongly enforce the new rule
+    for(let i = 0; i < 3; i++) {
+        allTrainingData.push({ input: boardSnapshot, output: correctOutput });
+    }
+
+    // Temporarily freeze the board and do a rapid micro-training session
+    isTraining = true;
+    statusElement.innerText = "Learning from mistake...";
+    
+    setTimeout(() => {
+        aiBrain.train(allTrainingData, { iterations: 150, errorThresh: 0.08 });
+        logThought(`💡 <b>Neural pathways updated!</b> I won't fall for that specific trap again.`);
+        isTraining = false;
+        statusElement.innerText = "X Wins!";
+    }, 100);
+}
+
 function aiMove() {
     const input = [...game.board];
+    lastBoardBeforeAiMoved = [...game.board]; 
     logThought(`🔍 <b>AI Analyzing Board:</b> [${input.join(', ')}]`);
     
     const prediction = aiBrain.run(input);
     
     // Find the best available move
-    let bestScore = -1;
+    let bestScore = -Infinity; // Ensure it picks a move even if predictions are low
     let bestMove = -1;
     
     for (let i = 0; i < 9; i++) {
