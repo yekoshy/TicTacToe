@@ -105,6 +105,59 @@ function generateTrainingData() {
     flashcards.push({ input:[0,0,0, 1,1,0, 0,0,0], output:[0,0,0, 0,0,1, 0,0,0] }); // Block MR
     flashcards.push({ input:[0,0,0, 0,1,1, 0,0,0], output:[0,0,0, 1,0,0, 0,0,0] }); // Block ML
 
+    // =========================================================
+    // 61-90. URGENT BLOCKS (Mid-game scenarios forcing the AI to block)
+    // =========================================================
+    
+    // Row 1 Blocks
+    flashcards.push({ input:[1,1,0, 0,-1,0, 0,0,0], output:[0,0,1, 0,0,0, 0,0,0] }); // Block TR
+    flashcards.push({ input:[1,0,1, 0,-1,0, 0,0,0], output:[0,1,0, 0,0,0, 0,0,0] }); // Block TM
+    flashcards.push({ input:[0,1,1, 0,-1,0, 0,0,0], output:[1,0,0, 0,0,0, 0,0,0] }); // Block TL
+
+    // Row 2 Blocks
+    flashcards.push({ input:[0,-1,0, 1,1,0, 0,0,0], output:[0,0,0, 0,0,1, 0,0,0] }); // Block MR
+    flashcards.push({ input:[0,0,0, 1,0,1, 0,-1,0], output:[0,0,0, 0,1,0, 0,0,0] }); // Block MM
+    flashcards.push({ input:[0,-1,0, 0,1,1, 0,0,0], output:[0,0,0, 1,0,0, 0,0,0] }); // Block ML
+
+    // Row 3 Blocks
+    flashcards.push({ input:[0,-1,0, 0,0,0, 1,1,0], output:[0,0,0, 0,0,0, 0,0,1] }); // Block BR
+    flashcards.push({ input:[0,0,-1, 0,0,0, 1,0,1], output:[0,0,0, 0,0,0, 0,1,0] }); // Block BM
+    flashcards.push({ input:[-1,0,0, 0,0,0, 0,1,1], output:[0,0,0, 0,0,0, 1,0,0] }); // Block BL
+
+    // Col 1 Blocks
+    flashcards.push({ input:[1,0,-1, 1,0,0, 0,0,0], output:[0,0,0, 0,0,0, 1,0,0] }); // Block BL
+    flashcards.push({ input:[1,0,0, 0,0,-1, 1,0,0], output:[0,0,0, 1,0,0, 0,0,0] }); // Block ML
+    flashcards.push({ input:[0,0,-1, 1,0,0, 1,0,0], output:[1,0,0, 0,0,0, 0,0,0] }); // Block TL
+
+    // Col 2 Blocks
+    flashcards.push({ input:[0,1,0, 0,1,0, -1,0,0], output:[0,0,0, 0,0,0, 0,1,0] }); // Block BM
+    flashcards.push({ input:[0,1,0, -1,0,0, 0,1,0], output:[0,0,0, 0,1,0, 0,0,0] }); // Block MM
+    flashcards.push({ input:[-1,0,0, 0,1,0, 0,1,0], output:[0,1,0, 0,0,0, 0,0,0] }); // Block TM
+
+    // Col 3 Blocks
+    flashcards.push({ input:[-1,0,1, 0,0,1, 0,0,0], output:[0,0,0, 0,0,0, 0,0,1] }); // Block BR
+    flashcards.push({ input:[0,0,1, -1,0,0, 0,0,1], output:[0,0,0, 0,0,1, 0,0,0] }); // Block MR
+    flashcards.push({ input:[-1,0,0, 0,0,1, 0,0,1], output:[0,0,1, 0,0,0, 0,0,0] }); // Block TR
+
+    // Diagonal 1 Blocks
+    flashcards.push({ input:[1,0,-1, 0,1,0, 0,0,0], output:[0,0,0, 0,0,0, 0,0,1] }); // Block BR
+    flashcards.push({ input:[1,0,0, -1,0,0, 0,0,1], output:[0,0,0, 0,1,0, 0,0,0] }); // Block MM
+    flashcards.push({ input:[-1,0,0, 0,1,0, 0,0,1], output:[1,0,0, 0,0,0, 0,0,0] }); // Block TL
+
+    // Diagonal 2 Blocks
+    flashcards.push({ input:[0,-1,1, 0,1,0, 0,0,0], output:[0,0,0, 0,0,0, 1,0,0] }); // Block BL
+    flashcards.push({ input:[0,0,1, -1,0,0, 1,0,0], output:[0,0,0, 0,1,0, 0,0,0] }); // Block MM
+    flashcards.push({ input:[0,-1,0, 0,1,0, 1,0,0], output:[0,0,1, 0,0,0, 0,0,0] }); // Block TR
+
+    // 6 Extra Distracted Mid-Game Blocks (AI has a piece somewhere else but must focus on the block)
+    flashcards.push({ input:[1,1,0, 0,0,0, 0,-1,0], output:[0,0,1, 0,0,0, 0,0,0] }); // Focus Block TR
+    flashcards.push({ input:[1,0,1, 0,0,0, 0,-1,0], output:[0,1,0, 0,0,0, 0,0,0] }); // Focus Block TM
+    flashcards.push({ input:[0,1,1, 0,0,0, 0,-1,0], output:[1,0,0, 0,0,0, 0,0,0] }); // Focus Block TL
+    flashcards.push({ input:[0,0,0, -1,0,0, 1,1,0], output:[0,0,0, 0,0,0, 0,0,1] }); // Focus Block BR
+    flashcards.push({ input:[0,0,0, -1,0,0, 1,0,1], output:[0,0,0, 0,0,0, 0,1,0] }); // Focus Block BM
+    flashcards.push({ input:[0,0,0, -1,0,0, 0,1,1], output:[0,0,0, 0,0,0, 1,0,0] }); // Focus Block BL
+
+    
     const lines = [
         [0,1,2], [3,4,5], [6,7,8], // Rows
         [0,3,6], [1,4,7], [2,5,8], // Cols
